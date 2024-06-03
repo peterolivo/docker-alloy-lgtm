@@ -1,0 +1,75 @@
+logging {
+	level    = "debug"
+	format   = "logfmt"
+	write_to = [otelcol.receiver.loki.loki_logs.receiver]
+}
+
+prometheus.exporter.self "alloy_metrics" { }
+
+discovery.relabel "alloy" {
+	targets = prometheus.exporter.self.alloy_metrics.targets
+
+	rule {
+		target_label = "job"
+		replacement  = "alloy"
+	}
+}
+
+prometheus.scrape "alloy_metrics" {
+	targets    = discovery.relabel.alloy.output
+	forward_to = otelcol.receiver.prometheus.prom_metrics.receiver
+
+	scrape_interval = "10s"
+}
+
+otelcol.receiver.otlp "alloy" {
+	grpc {
+		endpoint = "127.0.0.1:4317"
+	}
+
+	http {
+		endpoint = "127.0.0.1:4318"
+	}
+
+	output {
+		metrics = [otelcol.processor.batch.alloy.input]
+		logs    = [otelcol.processor.batch.alloy.input]
+		traces  = [otelcol.processor.batch.alloy.input]
+	}
+}
+
+otelcol.processor.batch "alloy" {
+	output {
+		metrics = [otelcol.exporter.otlphttp.metrics.input]
+		logs    = [otelcol.exporter.otlp.logs.input]
+		traces  = [otelcol.exporter.otlp.traces.input]
+	}
+}
+
+otelcol.receiver.prometheus "prom_metrics" {
+	output {
+		metrics = [otelcol.exporter.otlphttp.metrics.input]
+	}
+}
+
+otelcol.receiver.loki "loki_logs" {
+	output = [otelcol.exporter.otlphttp.logs.input]
+}
+
+otelcol.exporter.otlphttp "metrics" {
+	client {
+		endpoint = "localhost::9090/api/v1/otlp"
+	}
+}
+
+otelcol.exporter.otlp "traces" {
+	client {
+		endpoint = "localhost:4418"
+	}
+}
+
+otelcol.exporter.otlphttp "logs" {
+	client {
+		endpoint = "localhost:3100/otlp"
+	}
+}

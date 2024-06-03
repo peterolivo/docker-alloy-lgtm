@@ -4,7 +4,7 @@ ENV GRAFANA_VERSION="11.0.0"
 ENV PROMETHEUS_VERSION="2.52.0"
 ENV TEMPO_VERSION="2.4.2"
 ENV LOKI_VERSION="3.0.0"
-ENV OPENTELEMETRY_COLLECTOR_VERSION="0.100.0"
+ENV ALLOY_VERSION="1.1.1"
 
 # TARGETARCH is automatically detected and set by the Docker daemon during the build process. If the build starts
 # on an amd64 architecture, than the TARGETARCH will be set to `amd64`.
@@ -12,8 +12,8 @@ ENV OPENTELEMETRY_COLLECTOR_VERSION="0.100.0"
 ARG TARGETARCH
 ENV TARGETARCH=${TARGETARCH}
 
-RUN mkdir /otel-lgtm
-WORKDIR /otel-lgtm
+RUN mkdir /alloy-lgtm
+WORKDIR /alloy-lgtm
 
 RUN yum install -y unzip jq procps
 
@@ -36,10 +36,10 @@ RUN curl -sOL https://github.com/grafana/loki/releases/download/v$LOKI_VERSION/l
     unzip loki-linux-${TARGETARCH} -d loki-$LOKI_VERSION/ && \
     rm loki-linux-${TARGETARCH}.zip
 
-RUN curl -sOL https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$OPENTELEMETRY_COLLECTOR_VERSION/otelcol-contrib_${OPENTELEMETRY_COLLECTOR_VERSION}_linux_${TARGETARCH}.tar.gz && \
-    mkdir otelcol-contrib-$OPENTELEMETRY_COLLECTOR_VERSION && \
-    tar xfz otelcol-contrib_${OPENTELEMETRY_COLLECTOR_VERSION}_linux_${TARGETARCH}.tar.gz -C otelcol-contrib-$OPENTELEMETRY_COLLECTOR_VERSION/ && \
-    rm otelcol-contrib_${OPENTELEMETRY_COLLECTOR_VERSION}_linux_${TARGETARCH}.tar.gz
+RUN curl -sOL https://github.com/grafana/alloy/releases/download/v$ALLOY_VERSION/alloy-linux-${TARGETARCH}.zip && \
+    mkdir alloy-$ALLOY_VERSION && \
+    unzip alloy-linux-${TARGETARCH}.zip -d alloy-$ALLOY_VERSION && \
+    rm alloy-linux-${TARGETARCH}.zip
 
 COPY prometheus.yaml .
 COPY run-prometheus.sh .
@@ -53,8 +53,8 @@ COPY loki-config.yaml .
 COPY run-loki.sh .
 COPY tempo-config.yaml .
 COPY run-tempo.sh .
-COPY otelcol-config.yaml .
-COPY run-otelcol.sh .
+COPY config.alloy .
+COPY run-alloy.sh .
 COPY run-all.sh .
 
 CMD ./run-all.sh
